@@ -405,11 +405,11 @@ static void update_screen(void)
 	c = (unsigned int *)fbbuf;         /* -> compare framebuffer */
 	r = (unsigned int *)vncbuf;        /* -> remote framebuffer  */
 
-	for (y = 0; y < scrinfo.yres; y++)
+	for (y = 0; y < (int)scrinfo.yres; y++)
 	{
 		/* Compare every 2 pixels at a time, assuming that changes are likely
 		 * in pairs. */
-		for (x = 0; x < scrinfo.xres; x += 2)
+		for (x = 0; x < (int)scrinfo.xres; x += 2)
 		{
 			unsigned int pixel = *f;
 
@@ -528,6 +528,6 @@ int main(int argc, char **argv)
 
 	printf("Cleaning up...\n");
 	cleanup_fb();
-	cleanup_kdb();
+	cleanup_kbd();
 	cleanup_touch();
 }
