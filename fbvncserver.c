@@ -58,6 +58,7 @@ static struct fb_var_screeninfo scrinfo;
 static int fbfd = -1;
 static int kbdfd = -1;
 static int touchfd = -1;
+static int single_touch = 0;
 static unsigned short int *fbmmap = MAP_FAILED;
 static unsigned short int *vncbuf;
 static unsigned short int *fbbuf;
@@ -147,25 +148,34 @@ static void cleanup_kbd()
 
 static void init_touch()
 {
-    struct input_absinfo info;
+    struct input_absinfo info = {0};
+    int x = ABS_MT_POSITION_X;
+    int y = ABS_MT_POSITION_Y;
+
+    if (single_touch) {
+        x = ABS_X;
+        y = ABS_Y;
+    }
+
     if ((touchfd = open(TOUCH_DEVICE, O_RDWR)) == -1) {
         printf("cannot open touch device %s\n", TOUCH_DEVICE);
         exit(EXIT_FAILURE);
     }
+
     // Get the Range of X and Y
-    if (ioctl(touchfd, EVIOCGABS(ABS_X), &info)) {
-        printf("cannot get ABS_X info, %s\n", strerror(errno));
+    if (ioctl(touchfd, EVIOCGABS(x), &info)) {
+        printf("cannot get X info, %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
     xmin = info.minimum;
     xmax = info.maximum;
-    if (ioctl(touchfd, EVIOCGABS(ABS_Y), &info)) {
-        printf("cannot get ABS_Y, %s\n", strerror(errno));
+
+    if (ioctl(touchfd, EVIOCGABS(y), &info)) {
+        printf("cannot get Y info, %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
     ymin = info.minimum;
     ymax = info.maximum;
-
 }
 
 static void cleanup_touch()
@@ -311,52 +321,109 @@ void injectTouchEvent(int down, int x, int y)
 
     // Calculate the final x and y
     /* Fake touch screen always reports zero */
-    if (xmin != 0 && xmax != 0 && ymin != 0 && ymax != 0) {
+    if (xmax != 0 && ymax != 0) {
         x = xmin + (x * (xmax - xmin)) / (scrinfo.xres);
         y = ymin + (y * (ymax - ymin)) / (scrinfo.yres);
     }
 
     memset(&ev, 0, sizeof(ev));
 
-    // Then send a BTN_TOUCH
-    gettimeofday(&ev.time,0);
-    ev.type = EV_KEY;
-    ev.code = BTN_TOUCH;
-    ev.value = down;
-    if (write(touchfd, &ev, sizeof(ev)) < 0) {
-        printf("write event failed, %s\n", strerror(errno));
-    }
+    if (single_touch) {
+        // Then send a BTN_TOUCH
+        gettimeofday(&ev.time,0);
+        ev.type = EV_KEY;
+        ev.code = BTN_TOUCH;
+        ev.value = down;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
 
-    // Then send the X
-    gettimeofday(&ev.time,0);
-    ev.type = EV_ABS;
-    ev.code = ABS_X;
-    ev.value = x;
-    if (write(touchfd, &ev, sizeof(ev)) < 0) {
-        printf("write event failed, %s\n", strerror(errno));
-    }
+        // Then send the X
+        gettimeofday(&ev.time,0);
+        ev.type = EV_ABS;
+        ev.code = ABS_X;
+        ev.value = x;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
 
-    // Then send the Y
-    gettimeofday(&ev.time,0);
-    ev.type = EV_ABS;
-    ev.code = ABS_Y;
-    ev.value = y;
-    if (write(touchfd, &ev, sizeof(ev)) < 0) {
-        printf("write event failed, %s\n", strerror(errno));
-    }
+        // Then send the Y
+        gettimeofday(&ev.time,0);
+        ev.type = EV_ABS;
+        ev.code = ABS_Y;
+        ev.value = y;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
 
-    // Finally send the SYN
-    gettimeofday(&ev.time,0);
-    ev.type = EV_SYN;
-    ev.code = 0;
-    ev.value = 0;
-    if (write(touchfd, &ev, sizeof(ev)) < 0) {
-        printf("write event failed, %s\n", strerror(errno));
+        // Finally send the SYN
+        gettimeofday(&ev.time,0);
+        ev.type = EV_SYN;
+        ev.code = SYN_REPORT;
+        ev.value = 0;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
+    } else {
+        // ID of the touch, fixed to 0 here
+        gettimeofday(&ev.time,0);
+        ev.type = EV_ABS;
+        ev.code = ABS_MT_TRACKING_ID;
+        ev.value = 0;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
+
+        // Then send the X
+        gettimeofday(&ev.time,0);
+        ev.type = EV_ABS;
+        ev.code = ABS_MT_POSITION_X;
+        ev.value = x;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
+
+        // Then send the Y
+        gettimeofday(&ev.time,0);
+        ev.type = EV_ABS;
+        ev.code = ABS_MT_POSITION_Y;
+        ev.value = y;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
+
+        // Then send the pressure (down/up)
+        gettimeofday(&ev.time,0);
+        ev.type = EV_ABS;
+        ev.code = ABS_MT_PRESSURE;
+        ev.value = down;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
+
+        // End of separate touch data
+        gettimeofday(&ev.time,0);
+        ev.type = EV_SYN;
+        ev.code = SYN_MT_REPORT;
+        ev.value = 0;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
+
+        // Finally send the SYN
+        gettimeofday(&ev.time,0);
+        ev.type = EV_SYN;
+        ev.code = SYN_REPORT;
+        ev.value = 0;
+        if (write(touchfd, &ev, sizeof(ev)) < 0) {
+            printf("write event failed, %s\n", strerror(errno));
+        }
     }
 
     printf("injectTouchEvent (x=%d, y=%d, down=%d)\n", x , y, down);
 }
 
+static int pressed = 0;
 static void ptrevent(int buttonMask, int x, int y, rfbClientPtr cl)
 {
     /* Indicates either pointer movement or a pointer button press or release. The pointer is
@@ -372,7 +439,11 @@ From: http://www.vislab.usyd.edu.au/blogs/index.php/2009/05/22/an-headerless-ind
     if (buttonMask & 1) {
         // Simulate left mouse event as touch event
         injectTouchEvent(1, x, y);
+        pressed = 1;
+    }
+    if (pressed && !(buttonMask & 1)) {
         injectTouchEvent(0, x, y);
+        pressed = 0;
     }
 }
 
@@ -449,6 +520,7 @@ void print_usage(char **argv)
 {
     printf("%s [-k device] [-t device] [-h]\n"
            "-k device: keyboard device node, default is /dev/input/event3\n"
+           "-s specifies that touch device is single touch\n"
            "-t device: touch device node, default is /dev/input/event1\n"
            "-h : print this help\n", argv[0]);
 }
@@ -467,6 +539,9 @@ int main(int argc, char **argv)
                     case 'k':
                         i++;
                         strcpy(KBD_DEVICE, argv[i]);
+                        break;
+                    case 's':
+                        single_touch = 1;
                         break;
                     case 't':
                         i++;
