@@ -96,14 +96,12 @@ static void init_fb(void)
     size_t pixels;
     size_t bytespp;
 
-    if ((fbfd = open(FB_DEVICE, O_RDONLY)) == -1)
-    {
+    if ((fbfd = open(FB_DEVICE, O_RDONLY)) == -1) {
         printf("cannot open fb device %s\n", FB_DEVICE);
         exit(EXIT_FAILURE);
     }
 
-    if (ioctl(fbfd, FBIOGET_VSCREENINFO, &scrinfo) != 0)
-    {
+    if (ioctl(fbfd, FBIOGET_VSCREENINFO, &scrinfo) != 0) {
         printf("ioctl error\n");
         exit(EXIT_FAILURE);
     }
@@ -119,8 +117,7 @@ static void init_fb(void)
 
     fbmmap = mmap(NULL, pixels * bytespp, PROT_READ, MAP_SHARED, fbfd, 0);
 
-    if (fbmmap == MAP_FAILED)
-    {
+    if (fbmmap == MAP_FAILED) {
         printf("mmap failed\n");
         exit(EXIT_FAILURE);
     }
@@ -128,16 +125,14 @@ static void init_fb(void)
 
 static void cleanup_fb(void)
 {
-    if(fbfd != -1)
-    {
+    if (fbfd != -1) {
         close(fbfd);
     }
 }
 
 static void init_kbd()
 {
-    if((kbdfd = open(KBD_DEVICE, O_RDWR)) == -1)
-    {
+    if ((kbdfd = open(KBD_DEVICE, O_RDWR)) == -1) {
         printf("cannot open kbd device %s\n", KBD_DEVICE);
         exit(EXIT_FAILURE);
     }
@@ -145,8 +140,7 @@ static void init_kbd()
 
 static void cleanup_kbd()
 {
-    if(kbdfd != -1)
-    {
+    if (kbdfd != -1) {
         close(kbdfd);
     }
 }
@@ -154,19 +148,18 @@ static void cleanup_kbd()
 static void init_touch()
 {
     struct input_absinfo info;
-    if((touchfd = open(TOUCH_DEVICE, O_RDWR)) == -1)
-    {
+    if ((touchfd = open(TOUCH_DEVICE, O_RDWR)) == -1) {
         printf("cannot open touch device %s\n", TOUCH_DEVICE);
         exit(EXIT_FAILURE);
     }
     // Get the Range of X and Y
-    if(ioctl(touchfd, EVIOCGABS(ABS_X), &info)) {
+    if (ioctl(touchfd, EVIOCGABS(ABS_X), &info)) {
         printf("cannot get ABS_X info, %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
     xmin = info.minimum;
     xmax = info.maximum;
-    if(ioctl(touchfd, EVIOCGABS(ABS_Y), &info)) {
+    if (ioctl(touchfd, EVIOCGABS(ABS_Y), &info)) {
         printf("cannot get ABS_Y, %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -177,8 +170,7 @@ static void init_touch()
 
 static void cleanup_touch()
 {
-    if(touchfd != -1)
-    {
+    if (touchfd != -1) {
         close(touchfd);
     }
 }
@@ -234,8 +226,7 @@ void injectKeyEvent(uint16_t code, uint16_t value)
     ev.type = EV_KEY;
     ev.code = code;
     ev.value = value;
-    if(write(kbdfd, &ev, sizeof(ev)) < 0)
-    {
+    if (write(kbdfd, &ev, sizeof(ev)) < 0) {
         printf("write event failed, %s\n", strerror(errno));
     }
 
@@ -309,8 +300,7 @@ static void keyevent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
 
     printf("Got keysym: %04x (down=%d)\n", (unsigned int)key, (int)down);
 
-    if ((scancode = keysym2scancode(down, key, cl)))
-    {
+    if ((scancode = keysym2scancode(down, key, cl))) {
         injectKeyEvent(scancode, down);
     }
 }
@@ -321,8 +311,7 @@ void injectTouchEvent(int down, int x, int y)
 
     // Calculate the final x and y
     /* Fake touch screen always reports zero */
-    if (xmin != 0 && xmax != 0 && ymin != 0 && ymax != 0)
-    {
+    if (xmin != 0 && xmax != 0 && ymin != 0 && ymax != 0) {
         x = xmin + (x * (xmax - xmin)) / (scrinfo.xres);
         y = ymin + (y * (ymax - ymin)) / (scrinfo.yres);
     }
@@ -334,8 +323,7 @@ void injectTouchEvent(int down, int x, int y)
     ev.type = EV_KEY;
     ev.code = BTN_TOUCH;
     ev.value = down;
-    if(write(touchfd, &ev, sizeof(ev)) < 0)
-    {
+    if (write(touchfd, &ev, sizeof(ev)) < 0) {
         printf("write event failed, %s\n", strerror(errno));
     }
 
@@ -344,8 +332,7 @@ void injectTouchEvent(int down, int x, int y)
     ev.type = EV_ABS;
     ev.code = ABS_X;
     ev.value = x;
-    if(write(touchfd, &ev, sizeof(ev)) < 0)
-    {
+    if (write(touchfd, &ev, sizeof(ev)) < 0) {
         printf("write event failed, %s\n", strerror(errno));
     }
 
@@ -354,8 +341,7 @@ void injectTouchEvent(int down, int x, int y)
     ev.type = EV_ABS;
     ev.code = ABS_Y;
     ev.value = y;
-    if(write(touchfd, &ev, sizeof(ev)) < 0)
-    {
+    if (write(touchfd, &ev, sizeof(ev)) < 0) {
         printf("write event failed, %s\n", strerror(errno));
     }
 
@@ -364,8 +350,7 @@ void injectTouchEvent(int down, int x, int y)
     ev.type = EV_SYN;
     ev.code = 0;
     ev.value = 0;
-    if(write(touchfd, &ev, sizeof(ev)) < 0)
-    {
+    if (write(touchfd, &ev, sizeof(ev)) < 0) {
         printf("write event failed, %s\n", strerror(errno));
     }
 
@@ -384,7 +369,7 @@ static void ptrevent(int buttonMask, int x, int y, rfbClientPtr cl)
 From: http://www.vislab.usyd.edu.au/blogs/index.php/2009/05/22/an-headerless-indexed-protocol-for-input-1?blog=61 */
 
     //printf("Got ptrevent: %04x (x=%d, y=%d)\n", buttonMask, x, y);
-    if(buttonMask & 1) {
+    if (buttonMask & 1) {
         // Simulate left mouse event as touch event
         injectTouchEvent(1, x, y);
         injectTouchEvent(0, x, y);
@@ -405,16 +390,13 @@ static void update_screen(void)
     c = (unsigned int *)fbbuf;         /* -> compare framebuffer */
     r = (unsigned int *)vncbuf;        /* -> remote framebuffer  */
 
-    for (y = 0; y < (int)scrinfo.yres; y++)
-    {
+    for (y = 0; y < (int)scrinfo.yres; y++) {
         /* Compare every 2 pixels at a time, assuming that changes are likely
          * in pairs. */
-        for (x = 0; x < (int)scrinfo.xres; x += 2)
-        {
+        for (x = 0; x < (int)scrinfo.xres; x += 2) {
             unsigned int pixel = *f;
 
-            if (pixel != *c)
-            {
+            if (pixel != *c) {
                 *c = pixel;
 
                 /* XXX: Undo the checkered pattern to test the efficiency
@@ -427,8 +409,7 @@ static void update_screen(void)
 
                 if (x < varblock.min_i)
                     varblock.min_i = x;
-                else
-                {
+                else {
                     if (x > varblock.max_i)
                         varblock.max_i = x;
 
@@ -444,8 +425,7 @@ static void update_screen(void)
         }
     }
 
-    if (varblock.min_i < 9999)
-    {
+    if (varblock.min_i < 9999) {
         if (varblock.max_i < 0)
             varblock.max_i = varblock.min_i;
 
@@ -475,15 +455,11 @@ void print_usage(char **argv)
 
 int main(int argc, char **argv)
 {
-    if(argc > 1)
-    {
+    if (argc > 1) {
         int i=1;
-        while(i < argc)
-        {
-            if(*argv[i] == '-')
-            {
-                switch(*(argv[i] + 1))
-                {
+        while (i < argc) {
+            if (*argv[i] == '-') {
+                switch (*(argv[i] + 1)) {
                     case 'h':
                         print_usage(argv);
                         exit(0);
@@ -517,8 +493,7 @@ int main(int argc, char **argv)
     init_fb_server(argc, argv);
 
     /* Implement our own event loop to detect changes in the framebuffer. */
-    while (1)
-    {
+    while (1) {
         while (vncscr->clientHead == NULL)
             rfbProcessEvents(vncscr, 100000);
 
