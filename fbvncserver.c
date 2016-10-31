@@ -73,15 +73,15 @@ static int ymin, ymax;
  * algorithm.  I will probably be later rewriting all of this. */
 static struct varblock_t
 {
-	int min_i;
-	int min_j;
-	int max_i;
-	int max_j;
-	int r_offset;
-	int g_offset;
-	int b_offset;
-	int rfb_xres;
-	int rfb_maxy;
+    int min_i;
+    int min_j;
+    int max_i;
+    int max_j;
+    int r_offset;
+    int g_offset;
+    int b_offset;
+    int rfb_xres;
+    int rfb_maxy;
 } varblock;
 
 /*****************************************************************************/
@@ -93,62 +93,62 @@ static void ptrevent(int buttonMask, int x, int y, rfbClientPtr cl);
 
 static void init_fb(void)
 {
-	size_t pixels;
-	size_t bytespp;
+    size_t pixels;
+    size_t bytespp;
 
-	if ((fbfd = open(FB_DEVICE, O_RDONLY)) == -1)
-	{
-		printf("cannot open fb device %s\n", FB_DEVICE);
-		exit(EXIT_FAILURE);
-	}
+    if ((fbfd = open(FB_DEVICE, O_RDONLY)) == -1)
+    {
+        printf("cannot open fb device %s\n", FB_DEVICE);
+        exit(EXIT_FAILURE);
+    }
 
-	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &scrinfo) != 0)
-	{
-		printf("ioctl error\n");
-		exit(EXIT_FAILURE);
-	}
+    if (ioctl(fbfd, FBIOGET_VSCREENINFO, &scrinfo) != 0)
+    {
+        printf("ioctl error\n");
+        exit(EXIT_FAILURE);
+    }
 
-	pixels = scrinfo.xres * scrinfo.yres;
-	bytespp = scrinfo.bits_per_pixel / 8;
+    pixels = scrinfo.xres * scrinfo.yres;
+    bytespp = scrinfo.bits_per_pixel / 8;
 
-	fprintf(stderr, "xres=%d, yres=%d, xresv=%d, yresv=%d, xoffs=%d, yoffs=%d, bpp=%d\n",
-	  (int)scrinfo.xres, (int)scrinfo.yres,
-	  (int)scrinfo.xres_virtual, (int)scrinfo.yres_virtual,
-	  (int)scrinfo.xoffset, (int)scrinfo.yoffset,
-	  (int)scrinfo.bits_per_pixel);
+    fprintf(stderr, "xres=%d, yres=%d, xresv=%d, yresv=%d, xoffs=%d, yoffs=%d, bpp=%d\n",
+            (int)scrinfo.xres, (int)scrinfo.yres,
+            (int)scrinfo.xres_virtual, (int)scrinfo.yres_virtual,
+            (int)scrinfo.xoffset, (int)scrinfo.yoffset,
+            (int)scrinfo.bits_per_pixel);
 
-	fbmmap = mmap(NULL, pixels * bytespp, PROT_READ, MAP_SHARED, fbfd, 0);
+    fbmmap = mmap(NULL, pixels * bytespp, PROT_READ, MAP_SHARED, fbfd, 0);
 
-	if (fbmmap == MAP_FAILED)
-	{
-		printf("mmap failed\n");
-		exit(EXIT_FAILURE);
-	}
+    if (fbmmap == MAP_FAILED)
+    {
+        printf("mmap failed\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 static void cleanup_fb(void)
 {
-	if(fbfd != -1)
-	{
-		close(fbfd);
-	}
+    if(fbfd != -1)
+    {
+        close(fbfd);
+    }
 }
 
 static void init_kbd()
 {
-	if((kbdfd = open(KBD_DEVICE, O_RDWR)) == -1)
-	{
-		printf("cannot open kbd device %s\n", KBD_DEVICE);
-		exit(EXIT_FAILURE);
-	}
+    if((kbdfd = open(KBD_DEVICE, O_RDWR)) == -1)
+    {
+        printf("cannot open kbd device %s\n", KBD_DEVICE);
+        exit(EXIT_FAILURE);
+    }
 }
 
 static void cleanup_kbd()
 {
-	if(kbdfd != -1)
-	{
-		close(kbdfd);
-	}
+    if(kbdfd != -1)
+    {
+        close(kbdfd);
+    }
 }
 
 static void init_touch()
@@ -177,52 +177,52 @@ static void init_touch()
 
 static void cleanup_touch()
 {
-	if(touchfd != -1)
-	{
-		close(touchfd);
-	}
+    if(touchfd != -1)
+    {
+        close(touchfd);
+    }
 }
 
 /*****************************************************************************/
 
 static void init_fb_server(int argc, char **argv)
 {
-	printf("Initializing server...\n");
+    printf("Initializing server...\n");
 
-	/* Allocate the VNC server buffer to be managed (not manipulated) by
-	 * libvncserver. */
-	vncbuf = calloc(scrinfo.xres * scrinfo.yres, scrinfo.bits_per_pixel / 8);
-	assert(vncbuf != NULL);
+    /* Allocate the VNC server buffer to be managed (not manipulated) by
+     * libvncserver. */
+    vncbuf = calloc(scrinfo.xres * scrinfo.yres, scrinfo.bits_per_pixel / 8);
+    assert(vncbuf != NULL);
 
-	/* Allocate the comparison buffer for detecting drawing updates from frame
-	 * to frame. */
-	fbbuf = calloc(scrinfo.xres * scrinfo.yres, scrinfo.bits_per_pixel / 8);
-	assert(fbbuf != NULL);
+    /* Allocate the comparison buffer for detecting drawing updates from frame
+     * to frame. */
+    fbbuf = calloc(scrinfo.xres * scrinfo.yres, scrinfo.bits_per_pixel / 8);
+    assert(fbbuf != NULL);
 
-	/* TODO: This assumes scrinfo.bits_per_pixel is 16. */
-	vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, 5, 2, (scrinfo.bits_per_pixel / 8));
-	assert(vncscr != NULL);
+    /* TODO: This assumes scrinfo.bits_per_pixel is 16. */
+    vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, 5, 2, (scrinfo.bits_per_pixel / 8));
+    assert(vncscr != NULL);
 
-	vncscr->desktopName = "Android";
-	vncscr->frameBuffer = (char *)vncbuf;
-	vncscr->alwaysShared = TRUE;
-	vncscr->httpDir = NULL;
-	vncscr->port = VNC_PORT;
+    vncscr->desktopName = "Android";
+    vncscr->frameBuffer = (char *)vncbuf;
+    vncscr->alwaysShared = TRUE;
+    vncscr->httpDir = NULL;
+    vncscr->port = VNC_PORT;
 
-	vncscr->kbdAddEvent = keyevent;
-	vncscr->ptrAddEvent = ptrevent;
+    vncscr->kbdAddEvent = keyevent;
+    vncscr->ptrAddEvent = ptrevent;
 
-	rfbInitServer(vncscr);
+    rfbInitServer(vncscr);
 
-	/* Mark as dirty since we haven't sent any updates at all yet. */
-	rfbMarkRectAsModified(vncscr, 0, 0, scrinfo.xres, scrinfo.yres);
+    /* Mark as dirty since we haven't sent any updates at all yet. */
+    rfbMarkRectAsModified(vncscr, 0, 0, scrinfo.xres, scrinfo.yres);
 
-	/* No idea. */
-	varblock.r_offset = scrinfo.red.offset + scrinfo.red.length - 5;
-	varblock.g_offset = scrinfo.green.offset + scrinfo.green.length - 5;
-	varblock.b_offset = scrinfo.blue.offset + scrinfo.blue.length - 5;
-	varblock.rfb_xres = scrinfo.yres;
-	varblock.rfb_maxy = scrinfo.xres - 1;
+    /* No idea. */
+    varblock.r_offset = scrinfo.red.offset + scrinfo.red.length - 5;
+    varblock.g_offset = scrinfo.green.offset + scrinfo.green.length - 5;
+    varblock.b_offset = scrinfo.blue.offset + scrinfo.blue.length - 5;
+    varblock.rfb_xres = scrinfo.yres;
+    varblock.rfb_maxy = scrinfo.xres - 1;
 }
 
 /*****************************************************************************/
@@ -253,25 +253,25 @@ static int keysym2scancode(rfbBool down, rfbKeySym key, rfbClientPtr cl)
         scancode += KEY_1;
     } else if (code>=0xFF50 && code<=0xFF58) {
         static const uint16_t map[] =
-             {  KEY_HOME, KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN,
-                KEY_SOFT1, KEY_SOFT2, KEY_END, 0 };
+        {  KEY_HOME, KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN,
+            KEY_SOFT1, KEY_SOFT2, KEY_END, 0 };
         scancode = map[code & 0xF];
     } else if (code>=0xFFE1 && code<=0xFFEE) {
         static const uint16_t map[] =
-             {  KEY_LEFTSHIFT, KEY_LEFTSHIFT,
-                KEY_COMPOSE, KEY_COMPOSE,
-                KEY_LEFTSHIFT, KEY_LEFTSHIFT,
-                0,0,
-                KEY_LEFTALT, KEY_RIGHTALT,
-                0, 0, 0, 0 };
+        {  KEY_LEFTSHIFT, KEY_LEFTSHIFT,
+            KEY_COMPOSE, KEY_COMPOSE,
+            KEY_LEFTSHIFT, KEY_LEFTSHIFT,
+            0,0,
+            KEY_LEFTALT, KEY_RIGHTALT,
+            0, 0, 0, 0 };
         scancode = map[code & 0xF];
     } else if ((code>='A' && code<='Z') || (code>='a' && code<='z')) {
         static const uint16_t map[] = {
-                KEY_A, KEY_B, KEY_C, KEY_D, KEY_E,
-                KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
-                KEY_K, KEY_L, KEY_M, KEY_N, KEY_O,
-                KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
-                KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z };
+            KEY_A, KEY_B, KEY_C, KEY_D, KEY_E,
+            KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
+            KEY_K, KEY_L, KEY_M, KEY_N, KEY_O,
+            KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
+            KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z };
         scancode = map[(code & 0x5F) - 'A'];
     } else {
         switch (code) {
@@ -305,14 +305,14 @@ static int keysym2scancode(rfbBool down, rfbKeySym key, rfbClientPtr cl)
 
 static void keyevent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
 {
-	int scancode;
+    int scancode;
 
-	printf("Got keysym: %04x (down=%d)\n", (unsigned int)key, (int)down);
+    printf("Got keysym: %04x (down=%d)\n", (unsigned int)key, (int)down);
 
-	if ((scancode = keysym2scancode(down, key, cl)))
-	{
-		injectKeyEvent(scancode, down);
-	}
+    if ((scancode = keysym2scancode(down, key, cl)))
+    {
+        injectKeyEvent(scancode, down);
+    }
 }
 
 void injectTouchEvent(int down, int x, int y)
@@ -374,160 +374,160 @@ void injectTouchEvent(int down, int x, int y)
 
 static void ptrevent(int buttonMask, int x, int y, rfbClientPtr cl)
 {
-	/* Indicates either pointer movement or a pointer button press or release. The pointer is
-now at (x-position, y-position), and the current state of buttons 1 to 8 are represented
-by bits 0 to 7 of button-mask respectively, 0 meaning up, 1 meaning down (pressed).
-On a conventional mouse, buttons 1, 2 and 3 correspond to the left, middle and right
-buttons on the mouse. On a wheel mouse, each step of the wheel upwards is represented
-by a press and release of button 4, and each step downwards is represented by
-a press and release of button 5.
-  From: http://www.vislab.usyd.edu.au/blogs/index.php/2009/05/22/an-headerless-indexed-protocol-for-input-1?blog=61 */
+    /* Indicates either pointer movement or a pointer button press or release. The pointer is
+       now at (x-position, y-position), and the current state of buttons 1 to 8 are represented
+       by bits 0 to 7 of button-mask respectively, 0 meaning up, 1 meaning down (pressed).
+       On a conventional mouse, buttons 1, 2 and 3 correspond to the left, middle and right
+       buttons on the mouse. On a wheel mouse, each step of the wheel upwards is represented
+       by a press and release of button 4, and each step downwards is represented by
+       a press and release of button 5.
+From: http://www.vislab.usyd.edu.au/blogs/index.php/2009/05/22/an-headerless-indexed-protocol-for-input-1?blog=61 */
 
-	//printf("Got ptrevent: %04x (x=%d, y=%d)\n", buttonMask, x, y);
-	if(buttonMask & 1) {
-		// Simulate left mouse event as touch event
-		injectTouchEvent(1, x, y);
-		injectTouchEvent(0, x, y);
-	}
+    //printf("Got ptrevent: %04x (x=%d, y=%d)\n", buttonMask, x, y);
+    if(buttonMask & 1) {
+        // Simulate left mouse event as touch event
+        injectTouchEvent(1, x, y);
+        injectTouchEvent(0, x, y);
+    }
 }
 
 #define PIXEL_FB_TO_RFB(p,r,g,b) ((p>>r)&0x1f001f)|(((p>>g)&0x1f001f)<<5)|(((p>>b)&0x1f001f)<<10)
 
 static void update_screen(void)
 {
-	unsigned int *f, *c, *r;
-	int x, y;
+    unsigned int *f, *c, *r;
+    int x, y;
 
-	varblock.min_i = varblock.min_j = 9999;
-	varblock.max_i = varblock.max_j = -1;
+    varblock.min_i = varblock.min_j = 9999;
+    varblock.max_i = varblock.max_j = -1;
 
-	f = (unsigned int *)fbmmap;        /* -> framebuffer         */
-	c = (unsigned int *)fbbuf;         /* -> compare framebuffer */
-	r = (unsigned int *)vncbuf;        /* -> remote framebuffer  */
+    f = (unsigned int *)fbmmap;        /* -> framebuffer         */
+    c = (unsigned int *)fbbuf;         /* -> compare framebuffer */
+    r = (unsigned int *)vncbuf;        /* -> remote framebuffer  */
 
-	for (y = 0; y < (int)scrinfo.yres; y++)
-	{
-		/* Compare every 2 pixels at a time, assuming that changes are likely
-		 * in pairs. */
-		for (x = 0; x < (int)scrinfo.xres; x += 2)
-		{
-			unsigned int pixel = *f;
+    for (y = 0; y < (int)scrinfo.yres; y++)
+    {
+        /* Compare every 2 pixels at a time, assuming that changes are likely
+         * in pairs. */
+        for (x = 0; x < (int)scrinfo.xres; x += 2)
+        {
+            unsigned int pixel = *f;
 
-			if (pixel != *c)
-			{
-				*c = pixel;
+            if (pixel != *c)
+            {
+                *c = pixel;
 
-				/* XXX: Undo the checkered pattern to test the efficiency
-				 * gain using hextile encoding. */
-				if (pixel == 0x18e320e4 || pixel == 0x20e418e3)
-					pixel = 0x18e318e3;
+                /* XXX: Undo the checkered pattern to test the efficiency
+                 * gain using hextile encoding. */
+                if (pixel == 0x18e320e4 || pixel == 0x20e418e3)
+                    pixel = 0x18e318e3;
 
-				*r = PIXEL_FB_TO_RFB(pixel,
-				  varblock.r_offset, varblock.g_offset, varblock.b_offset);
+                *r = PIXEL_FB_TO_RFB(pixel,
+                                     varblock.r_offset, varblock.g_offset, varblock.b_offset);
 
-				if (x < varblock.min_i)
-					varblock.min_i = x;
-				else
-				{
-					if (x > varblock.max_i)
-						varblock.max_i = x;
+                if (x < varblock.min_i)
+                    varblock.min_i = x;
+                else
+                {
+                    if (x > varblock.max_i)
+                        varblock.max_i = x;
 
-					if (y > varblock.max_j)
-						varblock.max_j = y;
-					else if (y < varblock.min_j)
-						varblock.min_j = y;
-				}
-			}
+                    if (y > varblock.max_j)
+                        varblock.max_j = y;
+                    else if (y < varblock.min_j)
+                        varblock.min_j = y;
+                }
+            }
 
-			f++, c++;
-			r++;
-		}
-	}
+            f++, c++;
+            r++;
+        }
+    }
 
-	if (varblock.min_i < 9999)
-	{
-		if (varblock.max_i < 0)
-			varblock.max_i = varblock.min_i;
+    if (varblock.min_i < 9999)
+    {
+        if (varblock.max_i < 0)
+            varblock.max_i = varblock.min_i;
 
-		if (varblock.max_j < 0)
-			varblock.max_j = varblock.min_j;
+        if (varblock.max_j < 0)
+            varblock.max_j = varblock.min_j;
 
-		fprintf(stderr, "Dirty page: %dx%d+%d+%d...\n",
-		  (varblock.max_i+2) - varblock.min_i, (varblock.max_j+1) - varblock.min_j,
-		  varblock.min_i, varblock.min_j);
+        fprintf(stderr, "Dirty page: %dx%d+%d+%d...\n",
+                (varblock.max_i+2) - varblock.min_i, (varblock.max_j+1) - varblock.min_j,
+                varblock.min_i, varblock.min_j);
 
-		rfbMarkRectAsModified(vncscr, varblock.min_i, varblock.min_j,
-		  varblock.max_i + 2, varblock.max_j + 1);
+        rfbMarkRectAsModified(vncscr, varblock.min_i, varblock.min_j,
+                              varblock.max_i + 2, varblock.max_j + 1);
 
-		rfbProcessEvents(vncscr, 10000);
-	}
+        rfbProcessEvents(vncscr, 10000);
+    }
 }
 
 /*****************************************************************************/
 
 void print_usage(char **argv)
 {
-	printf("%s [-k device] [-t device] [-h]\n"
-		"-k device: keyboard device node, default is /dev/input/event3\n"
-		"-t device: touch device node, default is /dev/input/event1\n"
-		"-h : print this help\n", argv[0]);
+    printf("%s [-k device] [-t device] [-h]\n"
+           "-k device: keyboard device node, default is /dev/input/event3\n"
+           "-t device: touch device node, default is /dev/input/event1\n"
+           "-h : print this help\n", argv[0]);
 }
 
 int main(int argc, char **argv)
 {
-	if(argc > 1)
-	{
-		int i=1;
-		while(i < argc)
-		{
-			if(*argv[i] == '-')
-			{
-				switch(*(argv[i] + 1))
-				{
-					case 'h':
-						print_usage(argv);
-						exit(0);
-						break;
-					case 'k':
-						i++;
-						strcpy(KBD_DEVICE, argv[i]);
-						break;
-					case 't':
-						i++;
-						strcpy(TOUCH_DEVICE, argv[i]);
-						break;
-				}
-			}
-			i++;
-		}
-	}
+    if(argc > 1)
+    {
+        int i=1;
+        while(i < argc)
+        {
+            if(*argv[i] == '-')
+            {
+                switch(*(argv[i] + 1))
+                {
+                    case 'h':
+                        print_usage(argv);
+                        exit(0);
+                        break;
+                    case 'k':
+                        i++;
+                        strcpy(KBD_DEVICE, argv[i]);
+                        break;
+                    case 't':
+                        i++;
+                        strcpy(TOUCH_DEVICE, argv[i]);
+                        break;
+                }
+            }
+            i++;
+        }
+    }
 
-	printf("Initializing framebuffer device " FB_DEVICE "...\n");
-	init_fb();
-	printf("Initializing keyboard device %s ...\n", KBD_DEVICE);
-	init_kbd();
-	printf("Initializing touch device %s ...\n", TOUCH_DEVICE);
-	init_touch();
+    printf("Initializing framebuffer device " FB_DEVICE "...\n");
+    init_fb();
+    printf("Initializing keyboard device %s ...\n", KBD_DEVICE);
+    init_kbd();
+    printf("Initializing touch device %s ...\n", TOUCH_DEVICE);
+    init_touch();
 
-	printf("Initializing VNC server:\n");
-	printf("	width:  %d\n", (int)scrinfo.xres);
-	printf("	height: %d\n", (int)scrinfo.yres);
-	printf("	bpp:    %d\n", (int)scrinfo.bits_per_pixel);
-	printf("	port:   %d\n", (int)VNC_PORT);
-	init_fb_server(argc, argv);
+    printf("Initializing VNC server:\n");
+    printf("	width:  %d\n", (int)scrinfo.xres);
+    printf("	height: %d\n", (int)scrinfo.yres);
+    printf("	bpp:    %d\n", (int)scrinfo.bits_per_pixel);
+    printf("	port:   %d\n", (int)VNC_PORT);
+    init_fb_server(argc, argv);
 
-	/* Implement our own event loop to detect changes in the framebuffer. */
-	while (1)
-	{
-		while (vncscr->clientHead == NULL)
-			rfbProcessEvents(vncscr, 100000);
+    /* Implement our own event loop to detect changes in the framebuffer. */
+    while (1)
+    {
+        while (vncscr->clientHead == NULL)
+            rfbProcessEvents(vncscr, 100000);
 
-		rfbProcessEvents(vncscr, 100000);
-		update_screen();
-	}
+        rfbProcessEvents(vncscr, 100000);
+        update_screen();
+    }
 
-	printf("Cleaning up...\n");
-	cleanup_fb();
-	cleanup_kbd();
-	cleanup_touch();
+    printf("Cleaning up...\n");
+    cleanup_fb();
+    cleanup_kbd();
+    cleanup_touch();
 }
