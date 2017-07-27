@@ -164,18 +164,22 @@ static void init_touch()
 
     // Get the Range of X and Y
     if (ioctl(touchfd, EVIOCGABS(x), &info)) {
-        printf("cannot get X info, %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
+        printf("cannot get X info, %s => faking\n", strerror(errno));
+        xmin = 0;
+        xmax = scrinfo.xres;
+    } else {
+        xmin = info.minimum;
+        xmax = info.maximum;
     }
-    xmin = info.minimum;
-    xmax = info.maximum;
 
     if (ioctl(touchfd, EVIOCGABS(y), &info)) {
-        printf("cannot get Y info, %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
+        printf("cannot get Y info, %s => faking\n", strerror(errno));
+        ymin = 0;
+        ymax = scrinfo.yres;
+    } else {
+        ymin = info.minimum;
+        ymax = info.maximum;
     }
-    ymin = info.minimum;
-    ymax = info.maximum;
 }
 
 static void cleanup_touch()
