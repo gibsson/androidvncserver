@@ -61,7 +61,7 @@ extern "C" screenFormat getScreenFormatFlinger(void)
 
 extern "C" int initFlinger(void)
 {
-	int errno;
+	int err;
 
 	screenshotClient = new ScreenshotClient();
 
@@ -72,9 +72,9 @@ extern "C" int initFlinger(void)
 		return -1;
 	}
 
-	errno = screenshotClient->update(display, Rect(), true);
-	if (errno != NO_ERROR) {
-		L("screenshotClient->update %d\n", errno);
+	err = screenshotClient->update(display, Rect(), true);
+	if (err != NO_ERROR) {
+		L("screenshotClient->update %d\n", err);
 		return -1;
 	}
 
