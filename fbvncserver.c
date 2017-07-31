@@ -468,7 +468,8 @@ static void update_screen(void)
     for (y = 0; y < (int)scrinfo.yres; y++) {
         /* Compare every 2 pixels at a time, assuming that changes are likely
          * in pairs. */
-        for (x = 0; x < (int)scrinfo.xres; x += 2) {
+        int step = (scrinfo.bits_per_pixel == 16) ? 2 : 1;
+        for (x = 0; x < (int)scrinfo.xres; x += step) {
             unsigned int pixel = *f;
 
             if (pixel != *c) {
